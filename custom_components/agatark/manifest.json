@@ -1,0 +1,10 @@
+{
+  "domain": "agatark",
+  "name": "agatark",
+  "documentation": "https://github.com/tuudik/agatark",
+  "issue_tracker": "https://github.com/tuudik/agatark/issues",
+  "dependencies": [],
+  "config_flow": true,
+  "codeowners": ["@tuudik"],
+  "requirements": []
+}

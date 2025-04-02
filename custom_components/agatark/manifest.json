@@ -1,0 +1,12 @@
+{
+  "domain": "agatark",
+  "name": "Agatark integration",
+  "codeowners": [
+    "@ludeeus"
+  ],
+  "config_flow": true,
+  "documentation": "https://github.com/ludeeus/agatark",
+  "iot_class": "cloud_polling",
+  "issue_tracker": "https://github.com/ludeeus/agatark/issues",
+  "version": "0.1.0"
+}

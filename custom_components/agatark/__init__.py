@@ -7,15 +7,16 @@ https://github.com/ludeeus/integration_blueprint
 
 from __future__ import annotations
 
+import logging
 from datetime import timedelta
 from typing import TYPE_CHECKING
 
-from homeassistant.const import CONF_HOST, CONF_PASSWORD, CONF_USERNAME, Platform
+from homeassistant.const import CONF_EMAIL, CONF_HOST, CONF_PASSWORD, Platform
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.loader import async_get_loaded_integration
 
 from .api import AgatarkIntegrationApiClient
-from .const import DOMAIN, LOGGER
+from .const import DOMAIN
 from .coordinator import AgatarkDataUpdateCoordinator
 from .data import AgatarkIntegrationData
 
@@ -23,6 +24,8 @@ if TYPE_CHECKING:
     from homeassistant.core import HomeAssistant
 
     from .data import AgatarkIntegrationConfigEntry
+
+_LOGGER = logging.getLogger(__name__)  # Define the logger for the integration
 
 PLATFORMS: list[Platform] = [
     Platform.SENSOR,
@@ -32,35 +35,63 @@ PLATFORMS: list[Platform] = [
 
 
 # https://developers.home-assistant.io/docs/config_entries_index/#setting-up-an-entry
-async def async_setup_entry(
-    hass: HomeAssistant,
-    entry: AgatarkIntegrationConfigEntry,
-) -> bool:
-    """Set up this integration using UI."""
-    coordinator = AgatarkDataUpdateCoordinator(
-        hass=hass,
-        logger=LOGGER,
-        name=DOMAIN,
-        update_interval=timedelta(hours=1),
-    )
-    entry.runtime_data = AgatarkIntegrationData(
-        client=AgatarkIntegrationApiClient(
-            username=entry.data[CONF_USERNAME],
-            password=entry.data[CONF_PASSWORD],
-            host=entry.data[CONF_HOST],
-            session=async_get_clientsession(hass),
-        ),
-        integration=async_get_loaded_integration(hass, entry.domain),
-        coordinator=coordinator,
+async def async_setup_entry(hass, entry) -> bool:
+    """Set up the integration using UI."""
+    _LOGGER.info("Setting up Agatark integration")
+
+    # Create the API client with the initial options
+    client = AgatarkIntegrationApiClient(
+        email=entry.options.get("email", entry.data[CONF_EMAIL]),
+        password=entry.options.get("password", entry.data[CONF_PASSWORD]),
+        host=entry.options.get("host", entry.data[CONF_HOST]),
+        session=async_get_clientsession(hass),
     )
 
-    # https://developers.home-assistant.io/docs/integration_fetching_data#coordinated-single-api-poll-for-data-for-all-entities
-    await coordinator.async_config_entry_first_refresh()
+    # Store the client in the runtime data
+    hass.data.setdefault(DOMAIN, {})[entry.entry_id] = client
 
-    await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
-    entry.async_on_unload(entry.add_update_listener(async_reload_entry))
+    # Handle updates to options
+    entry.async_on_unload(entry.add_update_listener(async_update_options))
 
-    return True
+    try:
+        await client.authenticate()
+        hass.loop.create_task(client.async_long_poll_events())
+
+        coordinator = AgatarkDataUpdateCoordinator(
+            hass=hass,
+            logger=_LOGGER,
+            name=DOMAIN,
+            update_interval=timedelta(hours=1),
+        )
+        entry.runtime_data = AgatarkIntegrationData(
+            client=client,
+            integration=async_get_loaded_integration(hass, entry.domain),
+            coordinator=coordinator,
+        )
+
+        await coordinator.async_config_entry_first_refresh()
+        await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
+        entry.async_on_unload(entry.add_update_listener(async_reload_entry))
+
+        _LOGGER.info("Agatark integration setup completed successfully")
+    except Exception:
+        _LOGGER.exception("Error setting up Agatark integration")
+        return False
+    else:
+        return True
+
+
+async def async_update_options(hass, entry) -> None:
+    """Handle options update."""
+    _LOGGER.info("Updating options for Agatark integration")
+
+    # Get the updated options
+    client = hass.data[DOMAIN][entry.entry_id]
+    client.update_credentials(
+        email=entry.options.get("email"),
+        password=entry.options.get("password"),
+        host=entry.options.get("host"),
+    )
 
 
 async def async_unload_entry(

@@ -4,14 +4,14 @@
             "user": {
                 "description": "If you need help with the configuration have a look here: https://github.com/ludeeus/agatark",
                 "data": {
-                    "username": "Username",
+                    "email": "E-mail",
                     "password": "Password",
                     "host": "Hostname or IP"
                 }
             }
         },
         "error": {
-            "auth": "Username/Password is wrong.",
+            "auth": "E-mail/Password is wrong.",
             "connection": "Unable to connect to the server.",
             "unknown": "Unknown error occurred."
         },

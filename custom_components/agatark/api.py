@@ -138,6 +138,11 @@ class AgatarkIntegrationApiClient:
         }
 
         while True:
+            _LOGGER.debug("Start polling /events")
+            if self._session is None or self._session.closed:
+                _LOGGER.debug("Session closed; ending long-poll loop.")
+                break
+
             try:
                 async with async_timeout.timeout(30):  # Long poll timeout
                     response = await self._session.get(url, headers=headers)

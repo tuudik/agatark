@@ -1,8 +1,8 @@
 """
-Custom integration to integrate integration_blueprint with Home Assistant.
+Custom integration to integrate Agatark with Home Assistant.
 
 For more details about this integration, please refer to
-https://github.com/ludeeus/integration_blueprint
+https://github.com/tuudik/agatark
 """
 
 from __future__ import annotations
@@ -21,9 +21,8 @@ from .coordinator import AgatarkDataUpdateCoordinator
 from .data import AgatarkIntegrationData
 
 if TYPE_CHECKING:
+    from homeassistant.config_entries import ConfigEntry
     from homeassistant.core import HomeAssistant
-
-    from .data import AgatarkIntegrationConfigEntry
 
 _LOGGER = logging.getLogger(__name__)  # Define the logger for the integration
 
@@ -34,12 +33,10 @@ PLATFORMS: list[Platform] = [
 ]
 
 
-# https://developers.home-assistant.io/docs/config_entries_index/#setting-up-an-entry
-async def async_setup_entry(hass, entry) -> bool:
+async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up the integration using UI."""
     _LOGGER.info("Setting up Agatark integration")
 
-    # Create the API client with the initial options
     client = AgatarkIntegrationApiClient(
         email=entry.options.get("email", entry.data[CONF_EMAIL]),
         password=entry.options.get("password", entry.data[CONF_PASSWORD]),
@@ -47,10 +44,8 @@ async def async_setup_entry(hass, entry) -> bool:
         session=async_get_clientsession(hass),
     )
 
-    # Store the client in the runtime data
     hass.data.setdefault(DOMAIN, {})[entry.entry_id] = client
 
-    # Handle updates to options
     entry.async_on_unload(entry.add_update_listener(async_update_options))
 
     try:
@@ -81,11 +76,9 @@ async def async_setup_entry(hass, entry) -> bool:
         return True
 
 
-async def async_update_options(hass, entry) -> None:
+async def async_update_options(hass: HomeAssistant, entry: ConfigEntry) -> None:
     """Handle options update."""
     _LOGGER.info("Updating options for Agatark integration")
-
-    # Get the updated options
     client = hass.data[DOMAIN][entry.entry_id]
     client.update_credentials(
         email=entry.options.get("email"),
@@ -94,18 +87,12 @@ async def async_update_options(hass, entry) -> None:
     )
 
 
-async def async_unload_entry(
-    hass: HomeAssistant,
-    entry: AgatarkIntegrationConfigEntry,
-) -> bool:
+async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Handle removal of an entry."""
     return await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
 
 
-async def async_reload_entry(
-    hass: HomeAssistant,
-    entry: AgatarkIntegrationConfigEntry,
-) -> None:
+async def async_reload_entry(hass: HomeAssistant, entry: ConfigEntry) -> None:
     """Reload config entry."""
     await async_unload_entry(hass, entry)
     await async_setup_entry(hass, entry)

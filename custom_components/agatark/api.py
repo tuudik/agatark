@@ -107,6 +107,7 @@ class AgatarkIntegrationApiClient:
                     self._authorization = response_data.get("authorization")
                     if self._authorization:
                         _LOGGER.info("Successfully authenticated with Agatark API")
+                        _LOGGER.debug("Authorization token: %s", self._authorization)
                     else:
                         _LOGGER.error("Authorization token missing in response")
                 else:

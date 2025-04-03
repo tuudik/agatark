@@ -16,6 +16,20 @@ from .api import (
 )
 from .const import DOMAIN, LOGGER
 
+DATA_SCHEMA = vol.Schema(
+    {
+        vol.Required(CONF_HOST): selector.TextSelector(
+            selector.TextSelectorConfig(type=selector.TextSelectorType.TEXT)
+        ),
+        vol.Required(CONF_EMAIL): selector.TextSelector(
+            selector.TextSelectorConfig(type=selector.TextSelectorType.TEXT)
+        ),
+        vol.Required(CONF_PASSWORD): selector.TextSelector(
+            selector.TextSelectorConfig(type=selector.TextSelectorType.PASSWORD)
+        ),
+    }
+)
+
 
 class AgatarkConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     """Handle a config flow for Agatark integration."""
@@ -59,20 +73,44 @@ class AgatarkConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
         return self.async_show_form(
             step_id="user",
-            data_schema=vol.Schema(
-                {
-                    vol.Required(CONF_HOST): selector.TextSelector(
-                        selector.TextSelectorConfig(type=selector.TextSelectorType.TEXT)
-                    ),
-                    vol.Required(CONF_EMAIL): selector.TextSelector(
-                        selector.TextSelectorConfig(type=selector.TextSelectorType.TEXT)
-                    ),
-                    vol.Required(CONF_PASSWORD): selector.TextSelector(
-                        selector.TextSelectorConfig(
-                            type=selector.TextSelectorType.PASSWORD
-                        )
-                    ),
-                }
+            data_schema=DATA_SCHEMA,
+            errors=_errors,
+        )
+
+    async def async_step_reconfigure(
+        self, user_input: dict | None = None
+    ) -> config_entries.ConfigFlowResult:
+        """Handle the reconfiguration of an existing entry."""
+        reconfigure_entry = self._get_reconfigure_entry()
+        _errors = {}
+        if user_input is not None:
+            try:
+                await self._test_credentials(
+                    host=user_input[CONF_HOST],
+                    email=user_input[CONF_EMAIL],
+                    password=user_input[CONF_PASSWORD],
+                )
+            except AgatarkIntegrationApiClientAuthenticationError as exception:
+                LOGGER.warning(exception)
+                _errors["base"] = "auth"
+            except AgatarkIntegrationApiClientCommunicationError as exception:
+                LOGGER.error(exception)
+                _errors["base"] = "connection"
+            except AgatarkIntegrationApiClientError as exception:
+                LOGGER.exception(exception)
+                _errors["base"] = "unknown"
+            else:
+                await self.async_set_unique_id(slugify(user_input[CONF_HOST]))
+                self._abort_if_unique_id_configured()
+                return self.async_update_reload_and_abort(
+                    reconfigure_entry, data_updates=user_input
+                )
+
+        # Show the options form
+        return self.async_show_form(
+            step_id="reconfigure",
+            data_schema=self.add_suggested_values_to_schema(
+                DATA_SCHEMA, user_input or reconfigure_entry.data
             ),
             errors=_errors,
         )
@@ -84,42 +122,6 @@ class AgatarkConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             await client.authenticate()
         except Exception as exception:
             raise AgatarkIntegrationApiClientAuthenticationError from exception
-
-
-class OptionsFlowHandler(config_entries.OptionsFlow):
-    """Handle options flow for Agatark integration."""
-
-    def __init__(self, config_entry: config_entries.ConfigEntry) -> None:
-        """Initialize options flow."""
-        self.config_entry = config_entry
-
-    async def async_step_init(
-        self, user_input: dict | None = None
-    ) -> config_entries.ConfigFlowResult:
-        """Manage the options."""
-        if user_input is not None:
-            # Update the options
-            return self.async_create_entry(title="", data=user_input)
-
-        # Show the options form
-        return self.async_show_form(
-            step_id="init",
-            data_schema=vol.Schema(
-                {
-                    vol.Optional(
-                        "host", default=self.config_entry.options.get("host", "")
-                    ): str,
-                    vol.Optional(
-                        "email",
-                        default=self.config_entry.options.get("email", ""),
-                    ): str,
-                    vol.Optional(
-                        "password",
-                        default=self.config_entry.options.get("password", ""),
-                    ): str,
-                }
-            ),
-        )
 
 
 # Example usage of the AgatarkConfigFlow class

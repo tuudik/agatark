@@ -1,0 +1,28 @@
+{
+  "name": "agatark-mqtt-bridge",
+  "version": "1.0.0",
+  "description": "Agatark to Home Assistant MQTT Bridge",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "dev": "ts-node src/index.ts",
+    "docker:build": "docker build -t agatark-mqtt-bridge .",
+    "docker:run": "docker run --env-file .env agatark-mqtt-bridge"
+  },
+  "dependencies": {
+    "axios": "^1.7.7",
+    "aedes": "^0.51.3",
+    "net": "^1.0.2",
+    "winston": "^3.15.0",
+    "dotenv": "^16.4.5"
+  },
+  "devDependencies": {
+    "@types/node": "^22.7.5",
+    "typescript": "^5.6.3",
+    "ts-node": "^10.9.2"
+  },
+  "keywords": ["agatark", "home-assistant", "mqtt", "smart-home"],
+  "author": "Agatark MQTT Bridge",
+  "license": "MIT"
+}

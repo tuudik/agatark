@@ -1,0 +1,49 @@
+version: '3.8'
+
+services:
+  agatark-bridge:
+    build: .
+    container_name: agatark-mqtt-bridge
+    restart: unless-stopped
+    ports:
+      - "${MQTT_PORT:-1883}:1883"  # Expose MQTT broker port
+    environment:
+      # Agatark Configuration
+      - AGATARK_HOST=${AGATARK_HOST}
+      - AGATARK_EMAIL=${AGATARK_EMAIL}
+      - AGATARK_PASSWORD=${AGATARK_PASSWORD}
+      - AGATARK_REMEMBER=${AGATARK_REMEMBER:-on}
+      
+      # MQTT Broker Configuration
+      - MQTT_PORT=${MQTT_PORT:-1883}
+      - MQTT_USERNAME=${MQTT_USERNAME}
+      - MQTT_PASSWORD=${MQTT_PASSWORD}
+      
+      # Bridge Configuration
+      - POLL_INTERVAL=${POLL_INTERVAL:-5000}
+      - LOG_LEVEL=${LOG_LEVEL:-info}
+      - DISCOVERY_PREFIX=${DISCOVERY_PREFIX:-homeassistant}
+      - DEVICE_FILTER=${DEVICE_FILTER}
+      - HA_DISCOVERY_ENABLED=${HA_DISCOVERY_ENABLED:-true}
+      - HA_DEVICE_NAME=${HA_DEVICE_NAME:-Agatark Smart Home}
+    
+    # Mount timezone for correct timestamps
+    volumes:
+      - /etc/localtime:/etc/localtime:ro
+    
+    # Network mode bridge for MQTT connectivity
+    network_mode: bridge
+    
+    # Logging configuration
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    
+    # Health check to ensure broker is running
+    healthcheck:
+      test: ["CMD", "sh", "-c", "netstat -ln | grep :1883"]
+      interval: 30s
+      timeout: 5s
+      retries: 3

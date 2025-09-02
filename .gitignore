@@ -1,18 +1,42 @@
-# artifacts
-__pycache__
-.pytest*
-*.egg-info
-*/build/*
-*/dist/*
+node_modules/
+dist/
+*.log
+.env
+.DS_Store
 
+# IDE
+.vscode/
+.idea/
 
-# misc
-.coverage
-.vscode
-coverage.xml
-.ruff_cache
+# Build artifacts
+*.tgz
+*.tar.gz
 
+# Runtime
+pid
+*.pid
+*.seed
+*.pid.lock
 
-# Home Assistant configuration
-config/*
-!config/configuration.yaml
+# Coverage
+coverage/
+.nyc_output
+
+# Dependency directories
+jspm_packages/
+
+# Optional npm cache directory
+.npm
+
+# Optional eslint cache
+.eslintcache
+
+# Output of 'npm pack'
+*.tgz
+
+# Yarn Integrity file
+.yarn-integrity
+
+# Docker
+.dockerignore
+.artifacts
